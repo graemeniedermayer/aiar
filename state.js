@@ -1,5 +1,5 @@
-
 export const player_state = (() => {
+
 // ._parent._parent is code smell.
   class State {
     constructor(parent) {
@@ -19,14 +19,14 @@ export const player_state = (() => {
     }
   
     get Name() {
-      return 'death';
+      return 'death0';
     }
   
     Enter(prevState) {
       // random number between 0-5 (eventually do math to decide?)
       deathNum = 0
       this._action = this._parent._parent._animations[`death${deathNum}`];
-      this._action.loop = THREE.LoopOnce;
+      this._action.loop = 2200;
       this._action.play();
       
     }
@@ -46,16 +46,18 @@ export const player_state = (() => {
     }
   
     get Name() {
-      return 'Draw';
+      return 'drawbow';
     }
   
     Enter(prevState) {
-      this._action = this._parent._parent._animations['draw'];
-      this._action.loop = THREE.LoopOnce;
-      this._action.play();
-      if(prevAction.Name!='DrawIdle'){
+      if(prevState){
         const prevAction = this._parent._parent._animations[prevState.Name];
-        prevAction.stop()
+        this._action = this._parent._parent._animations['drawbow'];
+        this._action.loop = 2200;
+        this._action.play();
+        if(prevAction && prevAction.Name!='idledraw'){
+          prevAction.stop()
+        }
       }
     }
   
@@ -65,7 +67,7 @@ export const player_state = (() => {
     Update(_) {
       if( !this._action.isRunning() ){
         // unblocked firing?
-        this._parent.SetState('AimIdle');
+        this._parent.SetState('DrawIdle');
       }
     }
   };
@@ -78,31 +80,34 @@ export const player_state = (() => {
     }
   
     get Name() {
-      return 'Recoil';
+      return 'recoil';
     }
   
     Enter(prevState) {
-      const prevAction = this._parent._parent._animations[prevState.Name];
-      
-      this._action = this._parent._parent._animations['recoil'];
-      this._action.loop = THREE.LoopOnce;
-      this._action.play();
-      if(prevAction.Name!='DrawIdle'){
+      if(prevState){
         const prevAction = this._parent._parent._animations[prevState.Name];
-        prevAction.stop()
+        
+        this._action = this._parent._parent._animations['recoil'];
+        this._action.loop = 2200;
+        this._action.play();
+        if(prevState.Name!='idledraw'){
+
+          prevAction.stop()
+        }
       }
     }
   
     Exit() {
     }
   
-    Update(_) {
+    Update(_,input) {
 
       if( !this._action.isRunning() ){
-        this._parent.SetState('Drawing');
+        this._parent.SetState('Draw');
       }
     }
   };
+
 
   class DrawIdleState extends State {
     constructor(parent) {
@@ -112,24 +117,30 @@ export const player_state = (() => {
     }
   
     get Name() {
-      return 'DrawIdle';
+      return 'idledraw';
     }
   
     Enter(prevState) {
-      if(prevAction.Name!='DrawIdle'){
-        const prevAction = this._parent._parent._animations[prevState.Name];
-        prevAction.stop()
+      if(prevState && prevState.Name!='idledraw'){
+        const prevAction = this._parent._parent._animations[prevState.Name];   
+        this._action = this._parent._parent._animations['idledraw'];
+        
+        if(prevState.Name!='idledraw'){
+
+          prevAction.stop()
+        }
       }
+      
     }
   
     Exit() {
     }
   
-    Update(_) {
+    Update(_,input) {
 
-      if( input.actionButton1){
+      if( input && input.button1){
         // block action button
-        this._parent.SetState('Drawing');
+        this._parent.SetState('Recoil');
       }
     }
   };
@@ -142,17 +153,17 @@ export const player_state = (() => {
     }
   
     get Name() {
-      return 'AimIdle';
+      return 'idlebow';
     }
   
     Enter(prevState) {
-      this._action = this._parent._parent._animations['aimleft'];
+      this._action = this._parent._parent._animations['idlebow'];
       if (prevState) {
         const prevAction = this._parent._parent._animations[prevState.Name];
-  
+
         this._action.enabled = true;
   
-        if (prevState.Name !== 'AimLeft') {
+        if (prevState?.Name !== 'idlebow' ) {
           const ratio = this._action.getClip().duration / prevAction.getClip().duration;
           this._action.time = prevAction.time * ratio;
         } else {
@@ -172,12 +183,33 @@ export const player_state = (() => {
     Exit() {
     }
   
-    Update(_) {
-
-      if( input.actionButton1){
-        // block action button
-        this._parent.SetState('Drawing');
+    Update(_, input) {
+  
+      if (!input) {
+        return;
       }
+  // aome concept of momentum?
+      if (input.inputRight < 0) {
+        this._parent.SetState('AimLeft');
+        return;
+      }
+      if (input.inputRight > 0) {
+        this._parent.SetState('AimRight');
+        return;
+      }
+      if (input.inputForward > 0) {
+        this._parent.SetState('AimForward');
+        return;
+      }
+      if (input.inputForward < 0) {
+        this._parent.SetState('AimBackward');
+        return;
+      }
+
+      if (input.inputForward == 0 && input.inputRight==0) {
+        this._parent.SetState('AimIdle');
+      }
+      return;
     }
   };
   
@@ -190,7 +222,7 @@ export const player_state = (() => {
     }
   
     get Name() {
-      return 'AimLeft';
+      return 'aimleft';
     }
   
     Enter(prevState) {
@@ -200,7 +232,7 @@ export const player_state = (() => {
   
         this._action.enabled = true;
   
-        if (prevState.Name !== 'AimLeft') {
+        if (prevState.Name !== 'aimleft' ) {
           const ratio = this._action.getClip().duration / prevAction.getClip().duration;
           this._action.time = prevAction.time * ratio;
         } else {
@@ -240,7 +272,9 @@ export const player_state = (() => {
           this._parent.SetState('AimBackward');
           return;
         }
-        this._parent.SetState('AimIdle');
+        if (input.inputForward == 0 && input.inputRight==0) {
+          this._parent.SetState('AimIdle');
+        }
         return;
 
     }
@@ -253,7 +287,7 @@ export const player_state = (() => {
     }
   
     get Name() {
-      return 'AimRight';
+      return 'aimright';
     }
   
     Enter(prevState) {
@@ -263,7 +297,7 @@ export const player_state = (() => {
   
         this._action.enabled = true;
   
-        if (prevState.Name !== 'AimRight') {
+        if (prevState?.Name !== 'aimright' ) {
           const ratio = this._action.getClip().duration / prevAction.getClip().duration;
           this._action.time = prevAction.time * ratio;
         } else {
@@ -303,7 +337,9 @@ export const player_state = (() => {
         this._parent.SetState('AimBackward');
         return;
       }
-      this._parent.SetState('AimIdle');
+      if (input.inputForward == 0 && input.inputRight==0) {
+        this._parent.SetState('AimIdle');
+      }
       return;
     }
   };
@@ -315,7 +351,7 @@ export const player_state = (() => {
     }
   
     get Name() {
-      return 'AimForward';
+      return 'aimforwards';
     }
   
     Enter(prevState) {
@@ -325,7 +361,7 @@ export const player_state = (() => {
   
         this._action.enabled = true;
   
-        if (prevState.Name !== 'AimForward') {
+        if (prevState?.Name !== 'aimforwards' ) {
           const ratio = this._action.getClip().duration / prevAction.getClip().duration;
           this._action.time = prevAction.time * ratio;
         } else {
@@ -365,7 +401,9 @@ export const player_state = (() => {
         this._parent.SetState('AimBackward');
         return;
       }
-      this._parent.SetState('AimIdle');
+      if (input.inputForward == 0 && input.inputRight==0) {
+        this._parent.SetState('AimIdle');
+      }
       return;
     }
   };
@@ -377,7 +415,7 @@ export const player_state = (() => {
     }
   
     get Name() {
-      return 'AimBackward';
+      return 'aimbackwards';
     }
   
     Enter(prevState) {
@@ -387,7 +425,7 @@ export const player_state = (() => {
   
         this._action.enabled = true;
   
-        if (prevState.Name !== 'AimBackward') {
+        if (prevState?.Name !== 'aimbackwards' ) {
           const ratio = this._action.getClip().duration / prevAction.getClip().duration;
           this._action.time = prevAction.time * ratio;
         } else {
@@ -427,7 +465,9 @@ export const player_state = (() => {
         this._parent.SetState('AimBackward');
         return;
       }
-      this._parent.SetState('AimIdle');
+      if (input.inputForward == 0 && input.inputRight==0) {
+        this._parent.SetState('AimIdle');
+      }
       return;
     }
   };
@@ -447,9 +487,9 @@ class RotateRightState extends State {
     }
   
     Update(_, input) {
-      // if (!input) {
-      //   return;
-      // }
+      if (!input) {
+        return;
+      }
       // // aome concept of momentum?
       if (input.leftButton > 0) {
         this._parent.SetState('RotateLeft');
@@ -480,9 +520,9 @@ class RotateLeftState extends State {
   }
 
   Update(_, input) {
-    // if (!input) {
-    //   return;
-    // }
+    if (!input) {
+      return;
+    }
     // // aome concept of momentum?
     if (input.leftButton > 0) {
       this._parent.SetState('RotateLeft');
@@ -508,14 +548,16 @@ class RotateIdleState extends State {
   }
   Enter(prevState){
 
+    // this._action = this._parent._parent._animations['empty'];
+
   }
   Exit() {
   }
 
   Update(_, input) {
-    // if (!input) {
-    //   return;
-    // }
+    if (!input) {
+      return;
+    }
     // // aome concept of momentum?
     if (input.leftButton > 0) {
       this._parent.SetState('RotateLeft');
@@ -537,16 +579,17 @@ class RotateIdleState extends State {
     AimLeftState:  AimLeftState,
     AimForwardState: AimForwardState,
     AimBackwardState:AimBackwardState,
-
+    AimIdleState:AimIdleState,
+  
     RotateRightState: RotateRightState,
     RotateLeftState: RotateLeftState,
     RotateIdleState: RotateIdleState,
-
+  
     DrawState: DrawState,
     RecoilState: RecoilState,
-    AimingState: AimingState,
-
+    // OverdrawState: OverdrawState,
+    DrawIdleState: DrawIdleState,
+  
     DeathState: DeathState
   };
-
 })();
