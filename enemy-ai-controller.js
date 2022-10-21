@@ -51,9 +51,9 @@ export const enemy_ai_controller = (() => {
       if (!this.dead_) {
         this.dead_ = true;
       }
-      
-      this._enemySlashFSM.SetState('DeathIdle')
-      this._enemyStrafeFSM.SetState('DeathIdle') 
+      let body = this.Parent.components_.BasicRigidBody
+      _APP.ammojs_.RemoveRigidBody(body)
+      this._enemyStrafeFSM.SetState('Death') 
     }
 
     Update(timeElapsed) {
