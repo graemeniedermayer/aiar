@@ -15,10 +15,14 @@ export const load_controller = (() => {
       this.playing_ = [];
     }
 
+    // LoadPNG(path, name){
+      // if(!)
+    // }
+
     LoadTexture(path, name) {
       if (!(name in this.textures_)) {
         const loader = new THREE.TextureLoader();
-        loader.setPath(path);
+        loader.setPath(path.replace('./','/static/eave/experiment/'));
 
         this.textures_[name] = {loader: loader, texture: loader.load(name)};
         this.textures_[name].encoding = THREE.sRGBEncoding;
@@ -30,7 +34,7 @@ export const load_controller = (() => {
     LoadSound(path, name, onLoad) {
       if (!(name in this.sounds_)) {
         const loader = new THREE.AudioLoader();
-        loader.setPath(path);
+        loader.setPath(path.replace('./','/static/eave/experiment/'));
 
         loader.load(name, (buf) => {
           this.sounds_[name] = {
@@ -48,8 +52,8 @@ export const load_controller = (() => {
         const threejs = this.FindEntity('threejs').GetComponent('ThreeJSController');
         const s = new THREE.PositionalAudio(threejs.listener_);
         s.setBuffer(this.sounds_[name].buffer);
-        s.setRefDistance(25);
-        s.setMaxDistance(1000);
+        s.setRefDistance(0.25);
+        s.setMaxDistance(10);
         onLoad(s);
         this.playing_.push(s);
       }
@@ -69,7 +73,7 @@ export const load_controller = (() => {
     LoadFBX(path, name, onLoad) {
       if (!(name in this.models_)) {
         const loader = new FBXLoader();
-        loader.setPath(path);
+        loader.setPath(path.replace('./','/static/eave/experiment/'));
 
         this.models_[name] = {loader: loader, asset: null, queue: [onLoad]};
         this.models_[name].loader.load(name, (fbx) => {
@@ -94,7 +98,7 @@ export const load_controller = (() => {
       const fullName = path + name;
       if (!(fullName in this.models_)) {
         const loader = new GLTFLoader();
-        loader.setPath(path);
+        loader.setPath(path.replace('./','/static/eave/experiment/'));
 
         this.models_[fullName] = {loader: loader, asset: null, queue: [onLoad]};
         this.models_[fullName].loader.load(name, (glb) => {
@@ -106,7 +110,7 @@ export const load_controller = (() => {
             const clone = {...glb};
             clone.scene = SkeletonUtils.clone(clone.scene);
 
-            q(clone.scene);
+            q(clone.scene, clone.animations);
           }
         });
       } else if (this.models_[fullName].asset == null) {
@@ -115,8 +119,44 @@ export const load_controller = (() => {
         const clone = {...this.models_[fullName].asset};
         clone.scene = SkeletonUtils.clone(clone.scene);
 
-        onLoad(clone.scene);
+        onLoad(clone.scene, clone.animations);
       }
+    }
+    LoadAttachImageToObject(path, name, player, hand, params){
+      // const loader = new THREE.TextureLoader()
+      // loader.load('/static/eave/experiment/aiar/models/'+name, 
+      //   (weightTexture)=>{
+      //     let height = params.scale * weightTexture.image.height
+      //     let width = params.scale * weightTexture.image.width
+      //     let planeGeo =  new THREE.PlaneBufferGeometry( width, height, 1, 1 );
+      //     let planeMat= new THREE.MeshBasicMaterial({
+      //       map: weightTexture, 
+      //       alphaMap: weightTexture, 
+      //       alphaTest: 0.5, 
+      //       side: THREE.DoubleSide, 
+      //       transparent:  true
+      //     });
+          
+      //     let plane = new THREE.Mesh( planeGeo, planeMat );
+      //     plane.scale.x = 0.1
+      //     plane.scale.y = 0.1
+      //     plane.scale.z = 0.1
+      //     if(params.item=='bow'){
+      //       plane.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler( Math.PI/2, 0, Math.PI/2, 'XYZ' )))
+      //       plane.quaternion.multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler( 0, Math.PI/2, 0, 'XYZ' )))
+      //       // plane.position.y=5
+      //       player.weapon = plane
+      //       hand.add(plane)
+      //     }else{
+      //       plane.scale.y = 0.2
+      //       plane.position.y = 55
+      //       plane.position.x = 5
+      //       player.ammo = plane
+      //       hand.add(plane)
+      //     }
+      //   }
+      // )
+      
     }
 
     Update(timeElapsed) {

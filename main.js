@@ -6,6 +6,10 @@ import {spawners} from './spawners.js';
 
 import {spatial_hash_grid} from './spatial-hash-grid.js';
 import {threejs_component} from './threejs-component.js';
+import {ammojs_component} from './ammojs-component.js';
+import {xr_component} from './webxr-component.js';
+
+import {basic_rigid_body} from './rigid-body.js';
 
 import {math} from './math.js';
 
@@ -38,15 +42,42 @@ class aielf {
     threejs.AddComponent(new threejs_component.ThreeJSController());
     this.entityManager_.Add(threejs, 'threejs');
 
+    // This might be an issue if the player controller moves too soon.
+    Ammo().then((AmmoLib) => {
+        Ammo = AmmoLib;
+        const ammojs = new entity.Entity();
+        ammojs.AddComponent( new ammojs_component.AmmoJSController());
+        // is this still in scope?
+        _APP.entityManager_.Add(ammojs, 'physics');
+        _APP.ammojs_ = ammojs.GetComponent('AmmoJSController');
+        
+      })
+  
     // Hack
     this.scene_ = threejs.GetComponent('ThreeJSController').scene_;
     this.camera_ = threejs.GetComponent('ThreeJSController').camera_;
     this.threejs_ = threejs.GetComponent('ThreeJSController');
 
+
+		const geometry = new THREE.PlaneGeometry( 2000, 2000 );
+		geometry.rotateX( - Math.PI / 2 );
+
+		const material = new THREE.ShadowMaterial();
+		material.opacity = 0.4;
+
+    // floor
+		const plane = new  THREE.Mesh( geometry, material );
+		plane.scale.y = 1;
+		plane.scale.x = 4;
+		plane.scale.z = 4;
+		plane.position.y = -1.13;
+		plane.receiveShadow = true;
+    globalThis.plane = plane
+		this.scene_.add( plane );
+
     const l = new entity.Entity();
     l.AddComponent(new load_controller.LoadController());
     this.entityManager_.Add(l, 'loader');
-
 
     const basicParams = {
       grid: this.grid_,
@@ -55,14 +86,31 @@ class aielf {
     };
 
     const spawner = new entity.Entity();
-    spawner.AddComponent(new spawners.PlayerSpawner(basicParams));
-    spawner.AddComponent(new spawners.OtherPlayerSpawner(basicParams));
+    // spawner.AddComponent(new spawners.BuildingSpawner(basicParams));
+    spawner.AddComponent(new spawners.GoblinWeaponSpawner(basicParams));
+    spawner.AddComponent(new spawners.WeaponSpawner(basicParams));
     spawner.AddComponent(new spawners.ArrowSpawner(basicParams));
-    spawner.AddComponent(new spawners.ParticleEffectSpawner(basicParams));
+    spawner.AddComponent(new spawners.FloraSpawner(basicParams));
+    spawner.AddComponent(new spawners.PlayerSpawner(basicParams));
+    spawner.AddComponent(new spawners.GoblinSpawner(basicParams));
+    
     this.entityManager_.Add(spawner, 'spawners');
+    spawner.GetComponent('WeaponSpawner').Spawn()
+    spawner.GetComponent('GoblinWeaponSpawner').Spawn()
+    spawner.GetComponent('ArrowSpawner').Spawn()
 
-    spawner.GetComponent('PlayerSpawner').Spawn();
+    document.getElementById('character').addEventListener('click',(e)=>{
+      let ele = e.target
+      spawner.GetComponent('PlayerSpawner').Spawn(ele.id);
+      
+      spawner.GetComponent('GoblinSpawner').Spawn()
+      document.getElementById('character').style.display = 'none'
+    })
+    spawner.GetComponent('FloraSpawner').Spawn()
 
+    const webxr = new entity.Entity();
+    webxr.AddComponent(new  xr_component.XRController(this.threejs_.threejs_, basicParams))
+    this.entityManager_.Add(webxr, 'webxr');
 
   }
 
@@ -87,7 +135,9 @@ class aielf {
 
     this.entityManager_.Update(timeElapsedS, 0);
     this.entityManager_.Update(timeElapsedS, 1);
-
+    if(this.ammojs_){
+      this.ammojs_.StepSimulation(timeElapsedS);
+    }
   }
 }
 
@@ -96,5 +146,7 @@ let _APP = null;
 
 // This could be automatic right?
 window.addEventListener('DOMContentLoaded', () => {
-  _APP = new aielf();
+  // this is blocking...
+      _APP = new aielf();
+      globalThis._APP =_APP
 });

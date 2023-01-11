@@ -3,6 +3,8 @@ import {THREE} from './three-defs.js';
 import {entity} from './entity.js';
 import {math} from './math.js';
 
+import {fsm} from './fsm.js';
+import {globals} from './globals.js';
 
 export const player_controller = (() => {
 
@@ -11,10 +13,17 @@ export const player_controller = (() => {
       super();
       this.params_ = params;
       this.dead_ = false;
+      this._mixer;
+      this.scale = globals.scale
+      this._animations = {};
+      this._drawFSM = new fsm.drawFSM(this);
+      this._rotationFSM = new fsm.rotationFSM(this);
+      this._strafeFSM = new fsm.strafeFSM(this);
     }
 
     InitComponent() {
       this.RegisterHandler_('physics.collision', (m) => { this.OnCollision_(m); });
+      this.RegisterHandler_('health.dead', (m) => { this.OnDeath_(m); });
     }
 
     InitEntity() {
@@ -22,19 +31,35 @@ export const player_controller = (() => {
       this.acceleration_ = new THREE.Vector3(1, 0.005, 250);
       this.velocity_ = new THREE.Vector3(0, 0, 0);
     }
-
-    OnCollision_() {
+    OnDeath_(m) {
       if (!this.dead_) {
         this.dead_ = true;
-        console.log('EXPLODE ' + this.Parent.Name);
-        this.Broadcast({topic: 'health.dead'});
       }
+      this.Parent.components_.BasicRigidBody.Destroy()
+      
+      this._rotationFSM.SetState('Death')
+      this._strafeFSM.SetState('Death') 
+      this._drawFSM.SetState('Death')
+    }
+    OnCollision_(m) {
+      // This should be used for death aminations
+
+      // damage dealing collision
+      // if(collision.EnemyWeapon){
+      //     this.Broadcast({topic: 'health.dead'});
+
+      // }
+      // if(collision.EnemySpawner && collision.PlayerSpawner){
+
+      // }
+
+      // if (!this.dead_) {
+      //   this.dead_ = true;
+      //   this.Broadcast({topic: 'health.dead'});
+      // }
     }
 
     Fire_() {
-      this.Broadcast({
-          topic: 'player.fire'
-      });
     }
 
     Update(timeInSeconds) {
@@ -46,17 +71,15 @@ export const player_controller = (() => {
       if (!input) {
         return;
       }
+      this._drawFSM.Update(timeInSeconds, input);
+      this._rotationFSM.Update(timeInSeconds, input);
+      this._strafeFSM.Update(timeInSeconds, input);
+      
+      if(this._mixer){
+        this._mixer.update(timeInSeconds);
+      }
 
       const velocity = this.velocity_;
-      const frameDecceleration = new THREE.Vector3(
-          velocity.x * this.decceleration_.x,
-          velocity.y * this.decceleration_.y,
-          velocity.z * this.decceleration_.z
-      );
-      frameDecceleration.multiplyScalar(timeInSeconds);
-
-      velocity.add(frameDecceleration);
-      velocity.z = -math.clamp(Math.abs(velocity.z), .5, 1.25);
   
       const _PARENT_Q = this.Parent.Quaternion.clone();
       const _PARENT_P = this.Parent.Position.clone();
@@ -64,26 +87,38 @@ export const player_controller = (() => {
       const _Q = new THREE.Quaternion();
       const _A = new THREE.Vector3();
       const _R = _PARENT_Q.clone();
+
+      let direction = new THREE.Vector3(0, 0, 1).applyQuaternion(_PARENT_Q)
+      globalThis.direction = direction
+      let target = input.target.clone().sub(_PARENT_P)
+      target.y = 0;
+      direction.y = 0;
+      let anglesin = (direction.clone().cross(target)).dot(new THREE.Vector3(0,1,0))/(direction.length() * target.length())
   
       const acc = this.acceleration_.clone();
-      if (input.shift) {
-        acc.multiplyScalar(2.0);
-      }
-  
-      if (input.axis1Forward) {
-        _A.set(1, 0, 0);
-        _Q.setFromAxisAngle(_A, Math.PI * timeInSeconds * acc.y * input.axis1Forward);
-        _R.multiply(_Q);
-      }
-      if (input.axis1Side) {
+      if (input.button2) {
+        let velForward = input.inputForward > 0 ? 1.38/0.7333 : input.inputForward < 0 ? -1.38/1.0333 : 0
+        let velLeft = input.inputRight > 0 ? -1.8/1.3333 : input.inputRight < 0 ? 1.8/1.2333 : 0
+        if(input.button1){
+          velForward /= 2
+          velLeft /= 2
+        }
+        velocity.z = velForward * this.scale
+        velocity.x = velLeft * this.scale
+      }else{
+        let velForward = input.inputForward > 0 ? 1.38/0.7333 : input.inputForward < 0 ? -1.38/1.0333 : 0
+        let velLeft = input.inputRight > 0 ? -1.8/1.3333 : input.inputRight < 0 ? 1.8/1.2333 : 0
+        if(input.button1){
+          velForward /= 2
+          velLeft /= 2
+        }
+        velocity.z = velForward * this.scale
+        velocity.x = velLeft * this.scale
+        
         _A.set(0, 1, 0);
-        _Q.setFromAxisAngle(_A, -Math.PI * timeInSeconds * acc.y * input.axis1Side);
+        _Q.setFromAxisAngle(_A, 0.1*anglesin );
         _R.multiply(_Q);
-      }
-      if (input.axis2Side) {
-        _A.set(0, 0, -1);
-        _Q.setFromAxisAngle(_A, Math.PI * timeInSeconds * acc.y * input.axis2Side);
-        _R.multiply(_Q);
+        
       }
   
       const forward = new THREE.Vector3(0, 0, 1);
@@ -97,21 +132,25 @@ export const player_controller = (() => {
       const sideways = new THREE.Vector3(1, 0, 0);
       sideways.applyQuaternion(_PARENT_Q);
       sideways.normalize();
-  
-      sideways.multiplyScalar(velocity.x * timeInSeconds);
-      updown.multiplyScalar(velocity.y * timeInSeconds);
-      forward.multiplyScalar(velocity.z * timeInSeconds);
-  
-      const pos = _PARENT_P;
-      pos.add(forward);
-      pos.add(sideways);
-      pos.add(updown);
+      let vel = velocity.clone().multiplyScalar(1.2).applyQuaternion(_PARENT_Q)
+      try{
+        // likely not scaled correctly...
+        this.Parent.components_.BasicRigidBody.body_.body_.setLinearVelocity(new Ammo.btVector3(vel.x, vel.y, vel.z))
+        this.Parent.SetQuaternion(_R);
+        this.Parent.components_.BasicRigidBody.body_.body_.activate()
+      }catch(e){
+        sideways.multiplyScalar(velocity.x * timeInSeconds);
+        updown.multiplyScalar(velocity.y * timeInSeconds);
+        forward.multiplyScalar(velocity.z * timeInSeconds);
+        this.lastTime = timeInSeconds
+        
+        const pos = _PARENT_P;
+        pos.add(forward);
+        pos.add(sideways);
+        pos.add(updown);
 
-      this.Parent.SetPosition(pos);
-      this.Parent.SetQuaternion(_R);
-
-      if (input.space) {
-        this.Fire_();
+        this.Parent.SetQuaternion(_R);
+        this.Parent.SetPosition(pos);
       }
     }
   };

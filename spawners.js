@@ -38,7 +38,7 @@ export const spawners = (() => {
       );
       player.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
-        resourcePath: `./aiar/models/`,
+        resourcePath: `./aiar/models/character/`,
         resourceName: `${params.characterModel}.glb`,
         scale: scale,
         castShadow:true,
@@ -157,7 +157,7 @@ export const spawners = (() => {
       const flora = new entity.Entity();
       flora.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
-        resourcePath: `./aiar/models/`,
+        resourcePath: `./aiar/models/environment/`,
         resourceName: `environment.glb`,
         scale: scale,
         castShadow:true,
@@ -253,7 +253,7 @@ export const spawners = (() => {
       weapon.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
         nonScene: true,
-        resourcePath: `./aiar/models/`,
+        resourcePath: `./aiar/models/equipment/`,
         resourceName: `weapons.glb`,
         scale: scale,
         castShadow:true,
@@ -311,7 +311,7 @@ export const spawners = (() => {
       goblinWeapon.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
         nonScene: true,
-        resourcePath: `./aiar/models/`,
+        resourcePath: `./aiar/models/equipment/`,
         resourceName: `goblinWeapons.glb`,
         scale: scale,
         castShadow:true,
@@ -370,7 +370,7 @@ export const spawners = (() => {
       arrow.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
         nonScene: true,
-        resourcePath: `./aiar/models/`,
+        resourcePath: `./aiar/models/equipment/`,
         resourceName: `arrows.glb`,
         scale: scale,
         castShadow:true,
@@ -422,7 +422,7 @@ export const spawners = (() => {
       const building = new entity.Entity();
       building.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
-        resourcePath: `./aiar/models/`,
+        resourcePath: `./aiar/models/environment/`,
         resourceName: `town.glb`,
         scale: scale,
         castShadow:true,
@@ -476,7 +476,7 @@ export const spawners = (() => {
       }));
       enemy.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
-        resourcePath: './aiar/models/',
+        resourcePath: './aiar/models/enemy/',
         resourceName: 'goblin1.glb',
         scale: 0.7*scale,
         castShadow:true,
@@ -509,6 +509,7 @@ export const spawners = (() => {
           // TODO name weapons
           controller.weapons = weapons.filter(x=> x.name=='Plane');
           let weapon = controller.weapons[0]
+          globalThis.goblinWeapon = weapon
           controller.weapon = weapon
 
           righthand.add(weapon)
@@ -535,34 +536,11 @@ export const spawners = (() => {
       // DEMO
       // e.AddComponent(new enemy_controller.PlayerController());
 
+      // add as enemy?
       this.Manager.Add(enemy, 'goblin');
       enemy.SetPosition(pos)
 
       return enemy;
-    }
-  };
-
-
-  class ParticleEffectSpawner extends entity.Component {
-    constructor(params) {
-      super();
-      this.params_ = params;
-    }
-
-    Spawn(target) {
-      const params = {
-        camera: this.params_.camera,
-        scene: this.params_.scene,
-        target: target,
-      };
-
-      const e = new entity.Entity();
-      e.SetPosition(target.Position);
-      e.AddComponent(new ship_effect.ShipEffects(params));
-
-      this.Manager.Add(e);
-
-      return e;
     }
   };
 

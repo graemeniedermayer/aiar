@@ -79,6 +79,9 @@ export const entity = (() => {
 
       c.InitComponent();
     }
+    AddLateComponent(c) {
+      this.components_[c.constructor.name].InitEntity();
+    }
 
     InitEntity() {
       for (let k in this.components_) {

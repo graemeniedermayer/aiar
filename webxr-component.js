@@ -1,8 +1,19 @@
 import {entity} from "./entity.js";
+import {globals} from "./globals.js";
+import {THREE, RenderPass, EffectComposer} from './three-defs.js';
 
 // This is a little messy. I need to review JS context/scope
 
 export const xr_component = (() => {
+
+    // scoping get a little confusing with all the promises so this avoid global scope
+let thisScope = {
+    xrLightProbe: null,
+    xrRefSpace: null,
+    reflectionchange: false,
+    renderTarget: null
+}
+
 class XRController extends entity.Component {
     constructor(renderer, params) {
       super();
@@ -11,18 +22,25 @@ class XRController extends entity.Component {
       this.renderer_ = renderer;
       this.camera_ = camera;
       this.scene_ = scene;
+      this.xrLightProbe_ = null;
     //   global variables are the bestest of best variables.
       globalThis.camera = this.camera_
       globalThis.renderer = this.renderer_
       globalThis.scene = this.scene_
       this.options = {
-        requiredFeatures: ['depth-sensing', 'dom-overlay'],
+        requiredFeatures: [ 'dom-overlay', 'light-estimation'],//'depth-sensing'
         domOverlay: { root: document.body },
-        depthSensing: {
-          usagePreference: ["cpu-optimized"],
-          dataFormatPreference: ["luminance-alpha"]
-        }
+        // depthSensing: {
+        //   usagePreference: ["cpu-optimized"],
+        //   dataFormatPreference: ["luminance-alpha"]
+        // }
       };
+
+      const size = renderer.getSize( new THREE.Vector2() );
+      let pixelRatio = renderer.getPixelRatio();
+      let width = size.width;
+      let height = size.height;
+      thisScope.renderTarget =  new THREE.WebGLRenderTarget(  width * pixelRatio, height * pixelRatio )
     }
     Options(options) {
         this.options = options
@@ -82,9 +100,13 @@ class XRController extends entity.Component {
         context.button.textContent = 'EXIT AR';
 
         session.requestReferenceSpace('local').then((refSpace) => {
-            context.xrRefSpace = refSpace;
-          session.requestAnimationFrame(context.InitRender);
-        });
+            thisScope.xrRefSpace = refSpace;
+            session.requestLightProbe().then((lightProbe) => {
+                thisScope.xrLightProbe = lightProbe;
+                thisScope.xrLightProbe.addEventListener('reflectionchange', () => thisScope.reflectionChanged = true);
+            }).catch(err => console.error(err));
+            session.requestAnimationFrame(context.InitRender);
+          });
     }
 
     InitAR(){
@@ -113,31 +135,66 @@ class XRController extends entity.Component {
             });
     }
     InitRender(initt, initframe){
-        let xrRefSpace = this.xrRefSpace
-        function Render(t, frame) {
+        // renderer.setRenderTarget(thisScope.renderTarget)
+        let composer = new EffectComposer( renderer, thisScope.renderTarget)
+        const renderPass = new RenderPass( scene, camera );
+        composer.addPass( renderPass );
+        let Render = (t, frame) => {
+            renderer.shadowMap.needsUpdate = true;
             const session = frame.session;
             session.requestAnimationFrame(Render);
-            renderer.render( scene, camera );
+
+	        composer.render()
+            // renderer.render( scene, camera );
             let baseLayer = session.renderState.baseLayer;
-            // const pose = frame.getViewerPose(xrRefSpace);
-            // if (pose) {
-            // 	for (const view of pose.views) {
-            //         const viewport = baseLayer.getViewport(view);
-            //         // gl.viewport(viewport.x, viewport.y,
-            //         //             viewport.width, viewport.height);
-            //         // depth needs to be placed as a collider and for occlusion
-            // size = 2*Math.tan( Math.pi*camera.pov/(360) )
-    // whratio = width/height
-                    // Things to add to fragment shader
-                    // shaderMaterial.uniforms.uRawValueToMeters.value = depthData.rawValueToMeters
-                    // shaderMaterial.uniforms.coordTrans.value.x =  -1/viewport.width
-                    // shaderMaterial.uniforms.coordTrans.value.y = -1/viewport.height
-                    // shaderMaterial.uniforms.uDepthTexture.value = new THREE.DataTexture(new Uint8Array(depthData.data), depthData.width, depthData.height, THREE.LuminanceAlphaFormat)
-                    // shaderMaterial.uniforms.uDepthTexture.value.magFilter = THREE.LinearFilter
-                    // shaderMaterial.needsUpdate = true
-            //     }
-            // }
-        }
+            const pose = frame.getViewerPose(thisScope.xrRefSpace);
+            if (pose) {
+              for (const view of pose.views) {
+                const viewport = baseLayer.getViewport(view);
+                let gl = renderer.getContext()
+                gl.viewport(viewport.x, viewport.y,
+                    viewport.width, viewport.height);
+                if(thisScope.xrLightProbe){
+                    let estimate = frame.getLightEstimate(thisScope.xrLightProbe);
+                    if (estimate) {
+                      lightProbe.sh.fromArray(estimate.sphericalHarmonicsCoefficients);
+                      lightProbe.intensity = 1;
+                    
+                      const intensityScalar =
+                        Math.max(1.0,
+                        Math.max(estimate.primaryLightIntensity.x,
+                        Math.max(estimate.primaryLightIntensity.y,
+                                 estimate.primaryLightIntensity.z)));
+                        
+                      directionalLight.color.setRGB(
+                        estimate.primaryLightIntensity.x / intensityScalar,
+                        estimate.primaryLightIntensity.y / intensityScalar,
+                        estimate.primaryLightIntensity.z / intensityScalar);
+
+                      directionalLight.intensity = intensityScalar;
+                      directionalLight.position.copy(estimate.primaryLightDirection);
+
+                    } else {
+                      console.log("light estimate not available");
+                    }
+                    if (thisScope.reflectionChanged) {
+                        let glBinding = new XRWebGLBinding(session, gl);
+
+                        const cubeMap = glBinding.getReflectionCubeMap(thisScope.xrLightProbe);
+                        if (cubeMap) {
+                            globalThis.cubeMap = cubeMap
+                          let rendererProps = renderer.properties.get( thisScope.renderTarget );
+                          rendererProps.__webglTexture = cubeMap;
+                        } else {
+                          console.log("Cube map not available");
+                        }
+                        thisScope.reflectionChanged = false;
+                    }
+                }
+              }
+            }
+              
+        }   
         Render(initt,initframe)
     }
     Update(){

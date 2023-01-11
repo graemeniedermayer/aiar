@@ -17,7 +17,7 @@ export const enemy_state = (() => {
         Exit() {}
         Update() {}
       };
-      class StrikeState extends State {
+      class SlashState extends State {
         constructor(parent) {
           super(parent);
       
@@ -25,13 +25,12 @@ export const enemy_state = (() => {
         }
       
         get Name() {
-          return 'strike';
+          return 'slash';
         }
       
         Enter(prevState) {
           // random number between 0-5 (eventually do math to decide?)
-          deathNum = 1
-          this._action = this._parent._parent._animations[`strike`];
+          this._action = this._parent._parent._animations[`slash`];
           this._action.loop = 2200;
           this._action.play();
           
@@ -45,7 +44,7 @@ export const enemy_state = (() => {
       };
 
 
-      class IdleStrikeState extends State {
+      class IdleSlashState extends State {
         constructor(parent) {
           super(parent);
       
@@ -53,16 +52,10 @@ export const enemy_state = (() => {
         }
       
         get Name() {
-          return 'idlestrike';
+          return 'idleslash';
         }
       
         Enter(prevState) {
-          // random number between 0-5 (eventually do math to decide?)
-          deathNum = 1
-          this._action = this._parent._parent._animations[`strike`];
-          this._action.loop = 2200;
-          this._action.stop();
-          
         }
       
         Exit() {
@@ -85,9 +78,19 @@ export const enemy_state = (() => {
       
         Enter(prevState) {
           // random number between 0-5 (eventually do math to decide?)
-          deathNum = 1
-          this._action = this._parent._parent._animations[`death${deathNum}`];
+          let deathNum = 1
+          this._action = this._parent._parent._animations[`death2`];
           this._action.loop = 2200;
+          globalThis.action = this._action
+          if (prevState) {
+            const prevAction = this._parent._parent._animations[prevState.Name];
+            this._action.enabled = true;
+            this._action.time = 0.0;
+            this._action.setEffectiveTimeScale(1.0);
+            this._action.setEffectiveWeight(1.0);
+    
+            this._action.crossFadeFrom(prevAction, 0.1, true);
+          } 
           this._action.play();
           
         }
@@ -96,6 +99,9 @@ export const enemy_state = (() => {
         }
       
         Update(_) {
+          if(this._action.time > 2){
+            this._action.pause()
+          }
         }
       };
     
@@ -108,17 +114,16 @@ export const enemy_state = (() => {
       
         get Name() {
           return 'idle';
-        }
+        } 
       
         Enter(prevState) {
-          // this._action = this._parent._parent._animations['idle'];
-          this._action = this._parent._parent._animations['strike'];
+          this._action = this._parent._parent._animations['idle'];
           if (prevState) {
             const prevAction = this._parent._parent._animations[prevState.Name];
     
             this._action.enabled = true;
       
-            if (prevState?.Name !== 'strike' ) {
+            if (prevState?.Name !== 'slash' ) {
               const ratio = this._action.getClip().duration / prevAction.getClip().duration;
               this._action.time = prevAction.time * ratio;
             } else {
@@ -412,8 +417,8 @@ export const enemy_state = (() => {
         BackwardState:BackwardState,
         IdleState:IdleState,
       
-        StrikeState: StrikeState,
-        IdleStrikeState: IdleStrikeState,
+        SlashState: SlashState,
+        IdleSlashState: IdleSlashState,
       
         DeathState: DeathState
       };

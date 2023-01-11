@@ -36,9 +36,11 @@ export const health_controller = (() => {
       if (this.Parent.Attributes.dead) {
         return;
       }
-      spawner.Spawn(this.Parent);
+      // this should have damage particles
+      // spawner.Spawn(this.Parent);
       // msg.value
-      this.TakeDamage_(20);
+      console.log('hit')
+      this.TakeDamage_(7);
     }
 
     TakeDamage_(dmg) {
@@ -52,11 +54,12 @@ export const health_controller = (() => {
       });
 
       if (this.Parent.Attributes.health <= 0) {
+        console.log('death')
         this.Parent.Attributes.dead = true;
         this.Broadcast({topic: 'health.dead'});
         this.Parent.SetDead(true);
-        const e = this.FindEntity('spawners').GetComponent('ExplosionSpawner').Spawn(this.Parent.Position);
-        e.Broadcast({topic: 'health.dead'});
+        // const e = this.FindEntity('spawners').GetComponent('ExplosionSpawner').Spawn(this.Parent.Position);
+        // e.Broadcast({topic: 'health.dead'});
       }
     }
 

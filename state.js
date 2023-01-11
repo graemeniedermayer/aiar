@@ -1,3 +1,10 @@
+// const 2200 = 2200;
+// const LoopRepeat = 2201;
+// const LoopPingPong = 2202;
+
+
+// Soo I've started strongly coupling playercontroller and state is that okay?
+// playerinput and playercontrollers need to be separate.
 export const player_state = (() => {
 
 // ._parent._parent is code smell.
@@ -24,10 +31,25 @@ export const player_state = (() => {
   
     Enter(prevState) {
       // random number between 0-5 (eventually do math to decide?)
-      deathNum = 0
+      let deathNum = 0
       this._action = this._parent._parent._animations[`death${deathNum}`];
       this._action.loop = 2200;
-      this._action.play();
+      if (prevState) {
+        const prevAction = this._parent._parent._animations[prevState.Name];
+
+        this._action.enabled = true;
+  
+        
+        this._action.time = 0.0;
+        this._action.setEffectiveTimeScale(1.0);
+        this._action.setEffectiveWeight(1.0);
+        
+
+        this._action.crossFadeFrom(prevAction, 0.1, true);
+        this._action.play();
+      } else {
+        this._action.play();
+      }
       
     }
   
@@ -54,9 +76,10 @@ export const player_state = (() => {
         const prevAction = this._parent._parent._animations[prevState.Name];
         this._action = this._parent._parent._animations['drawbow'];
         this._action.loop = 2200;
-        this._action.play();
         if(prevAction && prevAction.Name!='idledraw'){
-          prevAction.stop()
+          this._action.crossFadeFrom(prevAction, 0.1, true);
+          this._action.fadeOut(1.0)
+          this._action.play();
         }
       }
     }
@@ -65,6 +88,9 @@ export const player_state = (() => {
     }
   
     Update(_) {
+      if(this._action.time > 0.2){
+        this._parent._parent.arrows[0].visible = true
+      }
       if( !this._action.isRunning() ){
         // unblocked firing?
         this._parent.SetState('DrawIdle');
@@ -85,11 +111,14 @@ export const player_state = (() => {
   
     Enter(prevState) {
       if(prevState){
+        this.fired = false // block any but first arrow
         const prevAction = this._parent._parent._animations[prevState.Name];
         
         this._action = this._parent._parent._animations['recoil'];
         this._action.loop = 2200;
         this._action.play();
+        this._action.fadeIn(0.1)
+        // hide arrow
         if(prevState.Name!='idledraw'){
 
           prevAction.stop()
@@ -101,7 +130,15 @@ export const player_state = (() => {
     }
   
     Update(_,input) {
+      
 
+      if(!this.fired && this._action.time > 0.3){
+        this.fired = true
+        this._parent._parent.Broadcast({
+            topic: 'player.fire'
+        });
+        this._parent._parent.arrows[0].visible = false
+      }
       if( !this._action.isRunning() ){
         this._parent.SetState('Draw');
       }
@@ -137,6 +174,7 @@ export const player_state = (() => {
     }
   
     Update(_,input) {
+      // questionable
 
       if( input && input.button1){
         // block action button
@@ -171,7 +209,7 @@ export const player_state = (() => {
           this._action.setEffectiveTimeScale(1.0);
           this._action.setEffectiveWeight(1.0);
         }
-  
+
         this._action.crossFadeFrom(prevAction, 0.1, true);
         this._action.play();
       } else {
@@ -255,13 +293,7 @@ export const player_state = (() => {
         if (!input) {
           return;
         }
-    // aome concept of momentum?
         if (input.inputRight < 0) {
-          this._parent.SetState('AimLeft');
-          return;
-        }
-        if (input.inputRight > 0) {
-          this._parent.SetState('AimRight');
           return;
         }
         if (input.inputForward > 0) {
@@ -305,7 +337,7 @@ export const player_state = (() => {
           this._action.setEffectiveTimeScale(1.0);
           this._action.setEffectiveWeight(1.0);
         }
-  
+
         this._action.crossFadeFrom(prevAction, 0.1, true);
         this._action.play();
       } else {
@@ -320,13 +352,7 @@ export const player_state = (() => {
       if (!input) {
         return;
       }
-  // aome concept of momentum?
-      if (input.inputRight < 0) {
-        this._parent.SetState('AimLeft');
-        return;
-      }
       if (input.inputRight > 0) {
-        this._parent.SetState('AimRight');
         return;
       }
       if (input.inputForward > 0) {
@@ -394,11 +420,6 @@ export const player_state = (() => {
         return;
       }
       if (input.inputForward > 0) {
-        this._parent.SetState('AimForward');
-        return;
-      }
-      if (input.inputForward < 0) {
-        this._parent.SetState('AimBackward');
         return;
       }
       if (input.inputForward == 0 && input.inputRight==0) {
@@ -457,12 +478,7 @@ export const player_state = (() => {
         this._parent.SetState('AimRight');
         return;
       }
-      if (input.inputForward > 0) {
-        this._parent.SetState('AimForward');
-        return;
-      }
       if (input.inputForward < 0) {
-        this._parent.SetState('AimBackward');
         return;
       }
       if (input.inputForward == 0 && input.inputRight==0) {

@@ -1,4 +1,5 @@
 import {entity} from "./entity.js";
+import {THREE} from './three-defs.js';
 
 
 export const player_input = (() => {
@@ -11,49 +12,58 @@ export const player_input = (() => {
   
     InitEntity() {
       this.Parent.Attributes.InputCurrent = {
-        axis1Forward: 0.0,
-        axis1Side: 0.0,
-        axis2Forward: 0.0,
-        axis2Side: 0.0,
-        pageUp: false,
-        pageDown: false,
-        space: false,
-        shift: false,
-        backspace: false,
+        inputForwards: 0.0,
+        inputRight: 0.0,
+        button1: false,
+        button2: false,
+        target: new THREE.Vector3(0,0,0)
       };
       this.Parent.Attributes.InputPrevious = {
         ...this.Parent.Attributes.InputCurrent};
       // controller = document.getElementById('controller')
       document.getElementById("up-control").addEventListener('touchstart', e=>{
-        this.Parent.Attributes.InputCurrent.axis1Forward = 1.0;
+        this.Parent.Attributes.InputCurrent.inputForward = 1.0;
       }, false);
       document.getElementById("down-control").addEventListener('touchstart', e=>{
-        this.Parent.Attributes.InputCurrent.axis1Forward = -1.0;
+        this.Parent.Attributes.InputCurrent.inputForward = -1.0;
       }, false);
       document.getElementById("left-control").addEventListener('touchstart', e=>{
-        this.Parent.Attributes.InputCurrent.axis1Side = -1.0;
+        this.Parent.Attributes.InputCurrent.inputRight = -1.0;
       }, false);
       document.getElementById("right-control").addEventListener('touchstart', e=>{
-        this.Parent.Attributes.InputCurrent.axis1Side = 1.0;
+        this.Parent.Attributes.InputCurrent.inputRight = 1.0;
       }, false);
-      document.getElementById("space-control").addEventListener('touchstart', e=>{
-        this.Parent.Attributes.InputCurrent.space = true;
+      document.getElementById("button1").addEventListener('touchstart', e=>{
+        this.Parent.Attributes.InputCurrent.button1 = true;
       }, false);
       document.getElementById("up-control").addEventListener('touchend', e=>{
-        this.Parent.Attributes.InputCurrent.axis1Forward = 0.0;
+        this.Parent.Attributes.InputCurrent.inputForward = 0.0;
       }, false);
       document.getElementById("down-control").addEventListener('touchend', e=>{
-        this.Parent.Attributes.InputCurrent.axis1Forward = 0.0;
+        this.Parent.Attributes.InputCurrent.inputForward = 0.0;
       }, false);
       document.getElementById("left-control").addEventListener('touchend', e=>{
-        this.Parent.Attributes.InputCurrent.axis1Side = 0.0;
+        this.Parent.Attributes.InputCurrent.inputRight = 0.0;
       }, false);
       document.getElementById("right-control").addEventListener('touchend', e=>{
-        this.Parent.Attributes.InputCurrent.axis1Side = 0.0;
+        this.Parent.Attributes.InputCurrent.inputRight = 0.0;
       }, false);
-      document.getElementById("space-control").addEventListener('touchend', e=>{
-        this.Parent.Attributes.InputCurrent.space = false;
+      document.getElementById("button1").addEventListener('touchend', e=>{
+        this.Parent.Attributes.InputCurrent.button1 = false;
       }, false);
+      var raycaster = new THREE.Raycaster();
+      var mouse = new THREE.Vector2( 0, 0);
+
+      setInterval(() => {
+        raycaster.setFromCamera( mouse, globalThis.camera );
+        let intersects = raycaster.intersectObjects( [globalThis.plane] );
+        if (intersects[0]){
+          this.Parent.Attributes.InputCurrent.target = intersects[0].point
+        }
+      }, 1000/60);
+      // document.getElementById("button2").addEventListener('touchend', e=>{
+      //   this.Parent.Attributes.InputCurrent.space = false;
+      // }, false);
       document.addEventListener('keydown', (e) => this.OnKeyDown_(e), false);
       document.addEventListener('keyup', (e) => this.OnKeyUp_(e), false);
     }
@@ -62,69 +72,11 @@ export const player_input = (() => {
       if (event.currentTarget.activeElement != document.body) {
         return;
       }
-      switch (event.keyCode) {
-        case 87: // w
-          this.Parent.Attributes.InputCurrent.axis1Forward = -1.0;
-          break;
-        case 65: // a
-          this.Parent.Attributes.InputCurrent.axis1Side = -1.0;
-          break;
-        case 83: // s
-          this.Parent.Attributes.InputCurrent.axis1Forward = 1.0;
-          break;
-        case 68: // d
-          this.Parent.Attributes.InputCurrent.axis1Side = 1.0;
-          break;
-        case 33: // PG_UP
-          this.Parent.Attributes.InputCurrent.pageUp = true;
-          break;
-        case 34: // PG_DOWN
-          this.Parent.Attributes.InputCurrent.pageDown = true;
-          break;
-        case 32: // SPACE
-          this.Parent.Attributes.InputCurrent.space = true;
-          break;
-        case 16: // SHIFT
-          this.Parent.Attributes.InputCurrent.shift = true;
-          break;
-        case 8: // BACKSPACE
-          this.Parent.Attributes.InputCurrent.backspace = true;
-          break;
-      }
     }
   
     OnKeyUp_(event) {
       if (event.currentTarget.activeElement != document.body) {
         return;
-      }
-      switch(event.keyCode) {
-        case 87: // w
-          this.Parent.Attributes.InputCurrent.axis1Forward = 0.0;
-          break;
-        case 65: // a
-          this.Parent.Attributes.InputCurrent.axis1Side = 0.0;
-          break;
-        case 83: // s
-          this.Parent.Attributes.InputCurrent.axis1Forward = 0.0;
-          break;
-        case 68: // d
-          this.Parent.Attributes.InputCurrent.axis1Side = 0.0;
-          break;
-        case 33: // PG_UP
-          this.Parent.Attributes.InputCurrent.pageUp = false;
-          break;
-        case 34: // PG_DOWN
-          this.Parent.Attributes.InputCurrent.pageDown = false;
-          break;
-        case 32: // SPACE
-          this.Parent.Attributes.InputCurrent.space = false;
-          break;
-        case 16: // SHIFT
-          this.Parent.Attributes.InputCurrent.shift = false;
-          break;
-        case 8: // BACKSPACE
-          this.Parent.Attributes.InputCurrent.backspace = false;
-          break;
       }
     }
 

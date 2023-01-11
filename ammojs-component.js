@@ -47,6 +47,7 @@ export const ammojs_component = (() => {
     }
 
     InitArrow(pos, quat, size, userData, initialVelocity, mass=.01) {
+      console.log(userData)
       this.transform_ = new Ammo.btTransform();
       this.transform_.setIdentity();
       this.transform_.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
@@ -66,11 +67,12 @@ export const ammojs_component = (() => {
       this.body_.setGravity( new Ammo.btVector3(0, -3.0, 0))
       this.body_.applyGravity()
       this.userData_ = new Ammo.btVector3(0, 0, 0);
-      this.userData_.userData = userData;
+      this.userData_.userData = {name:'arrow'};
       this.body_.setUserPointer(this.userData_);
     }
 
     InitBox(pos, quat, size, userData) {
+      // used for floor if mass changes from zero the rest should be altered.
       this.transform_ = new Ammo.btTransform();
       this.transform_.setIdentity();
       this.transform_.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
@@ -82,7 +84,7 @@ export const ammojs_component = (() => {
       this.shape_.setMargin(0.05);
 
       this.inertia_ = new Ammo.btVector3(0, 0, 0);
-      this.shape_.calculateLocalInertia(10, this.inertia_);
+      this.shape_.calculateLocalInertia(0, this.inertia_);
 
       this.info_ = new Ammo.btRigidBodyConstructionInfo(10, this.motionState_, this.shape_, this.inertia_);
       this.body_ = new Ammo.btRigidBody(this.info_);
@@ -154,7 +156,7 @@ export const ammojs_component = (() => {
       Ammo.destroy(A1);
       Ammo.destroy(A2);
     }
-
+    
     InitCompound(poss, quats, sizes, userData, mass=0) {
       this.shape_ = new Ammo.btCompoundShape(); 
       let transform_ = new Ammo.btTransform();
@@ -213,10 +215,31 @@ export const ammojs_component = (() => {
       this.solver_ = new Ammo.btSequentialImpulseConstraintSolver();
       this.physicsWorld_ = new Ammo.btDiscreteDynamicsWorld(
           this.dispatcher_, this.broadphase_, this.solver_, this.collisionConfiguration_);
-      this.physicsWorld_.setGravity(new Ammo.btVector3(0, 0, 0));
+      this.physicsWorld_.setGravity(new Ammo.btVector3(0, -3.0, 0));
       this.tmpRayOrigin_ = new Ammo.btVector3();
       this.tmpRayDst_ = new Ammo.btVector3();
       this.rayCallback_ = new Ammo.ClosestRayResultCallback(this.tmpRayOrigin_, this.tmpRayDst_);
+    
+    // hardcode floor? this definitely needs to be replaced
+      let transform = new Ammo.btTransform();
+      transform.setIdentity();
+      transform.setOrigin(new Ammo.btVector3(0, globals.floorHeight-0.005, 0));
+      transform.setRotation(new Ammo.btQuaternion(0, 0, 0, 1));
+      let motionState = new Ammo.btDefaultMotionState(transform);
+
+      let size = new Ammo.btVector3(4, 0.01, 4);
+      let shape = new Ammo.btBoxShape(size);
+      shape.setMargin(0.01);
+
+      let mass = 0.0
+      let inertia = new Ammo.btVector3(0, 0, 0);
+      let info = new Ammo.btRigidBodyConstructionInfo(mass, motionState, shape, inertia);
+      let body = new Ammo.btRigidBody(info);
+      let userData = new Ammo.btVector3(0, 0, 0);
+      userData.userData = {name:'floor'};
+      body.setUserPointer(userData);
+      this.physicsWorld_.addRigidBody( body );
+    
     }
 
     RayTest(start, end) {
@@ -248,7 +271,13 @@ export const ammojs_component = (() => {
 
     RemoveRigidBody(body) {
       this.physicsWorld_.removeRigidBody(body.body_);
-      body.Destroy();
+
+      // remove from lists
+    // this.userData_.userData
+      if(this.items_[body.body_.userData_.userData.name]){
+        delete this.items_[body.body_.userData_.userData.name];
+        body.Destroy();
+      }
     }
 
     CreateBox(pos, quat, size, userData) {
@@ -278,7 +307,7 @@ export const ammojs_component = (() => {
     CreatePlane(pos, quat, size, userData) {
       const box = new AmmoJSRigidBody();
 
-      box.InitPlane(pos, quat, size, userData);
+      box.InitBox(pos, quat, size, userData);
 
       this.physicsWorld_.addRigidBody(box.body_);
 
@@ -336,18 +365,78 @@ export const ammojs_component = (() => {
           const rb1 = contactManifold.getBody1();
           const ud0 = Ammo.castObject(rb0.getUserPointer(), Ammo.btVector3).userData;
           const ud1 = Ammo.castObject(rb1.getUserPointer(), Ammo.btVector3).userData;
+          
           // userData for types of collisions
-          if (!(ud0.name in collisions)) {
-            collisions[ud0.name] = [];
-          }
-          collisions[ud0.name].push(ud1.name);
 
-          if (!(ud1.name in collisions)) {
-            collisions[ud1.name] = [];
+          // do we need all collisions?
+          // if (!(ud0.name in collisions)) {
+          //   collisions[ud0.name] = [];
+          // }
+          // collisions[ud0.name].push(ud1.name);
+
+          // if (!(ud1.name in collisions)) {
+          //   collisions[ud1.name] = [];
+          // }
+          // collisions[ud1.name].push(ud0.name);
+
+          // enemy damages
+          if((ud1.name == 'arrow' && ud0.name == 'goblin')){
+            console.log('arrGoblin')
           }
-          collisions[ud1.name].push(ud0.name);
+          if((ud0.name == 'player' && ud1.name == 'enemyWeapon')){
+            if (!(ud0.name in collisions)) {
+              collisions[ud0.name] = [];
+            }
+            collisions[ud0.name].push(ud1.name);
+          }
+          if((ud1.name == 'player' && ud0.name == 'enemyWeapon')){
+            if (!(ud1.name in collisions)) {
+              collisions[ud1.name] = [];
+            }
+            collisions[ud1.name].push(ud0.name);
+          }
+
+          // ally damages 
+          // name in goblins
+          if((ud1.name == 'arrow' && ud0.name == 'goblin')){
+            if (!(ud0.name in collisions)) {
+              collisions[ud0.name] = [];
+            }
+            collisions[ud0.name].push(ud1.name);
+          }
+          if((ud0.name == 'arrow' && ud1.name == 'goblin')){
+            if (!(ud1.name in collisions)) {
+              collisions[ud1.name] = [];
+            }
+            collisions[ud1.name].push(ud0.name);
+          }
+        }
+        if(Object.keys(collisions).length){
+          console.log(collisions)
         }
       }
+      for (let k in collisions) {
+        const e = this.FindEntity(k);
+        // if(e)
+        try{
+          e.Broadcast({topic: 'player.hit', value: collisions[k]});
+          e.Broadcast({topic: 'physics.collision', value: collisions[k]});
+        }catch(e){
+
+        }
+      }
+      
+      // for (let k in this.terrain_) {
+      //   const e = this.FindEntity(k);
+      //   let tmpTransform = new Ammo.btTransform();
+      //   this.terrain_[k].getMotionState().getWorldTransform(tmpTransform)
+      //   let pos = tmpTransform.getOrigin()
+      //   let quat = tmpTransform.getRotation()
+      //   console.log(new THREE.Vector3(pos.x(), pos.y(), pos.z()) );
+      //   console.log(new THREE.Quaternion(quat.x(), quat.y(), quat.z(), quat.w()) ); 
+      // }
+      // 
+      // updateArrowPositions
       let player = this.FindEntity('player')
       let debug_arrows//bad style
       if(player){

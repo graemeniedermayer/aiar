@@ -11,8 +11,12 @@ export const render_component = (() => {
       this.group_ = new THREE.Group();
       this.target_ = null;
       this.offset_ = null;
+      this.mixer_ = null;
+      this.anims_ = null;
       this.params_ = params;
-      this.params_.scene.add(this.group_);
+      if(!this.params_.nonScene){
+        this.params_.scene.add(this.group_);
+      }
     }
 
     Destroy() {
@@ -65,12 +69,20 @@ export const render_component = (() => {
     _LoadModels() {
       const loader = this.FindEntity('loader').GetComponent('LoadController');
       loader.Load(
-          this.params_.resourcePath, this.params_.resourceName, (mdl) => {
-        this._OnLoaded(mdl);
+        this.params_.resourcePath, this.params_.resourceName, (mdl,anim) => {
+          if(this.params_.callbackOrder =='postLoad'){
+            this._OnLoaded(mdl);
+            this.params_.callback(mdl, anim, this)// there's got to be a better non-callback way
+          }else{
+            this.params_.callback(mdl, anim, this)// there's got to be a better non-callback way
+        
+            this._OnLoaded(mdl);
+          }
       });
     }
 
     _OnLoaded(obj) {
+
       this.target_ = obj;
       this.group_.add(this.target_);
       this.group_.position.copy(this.Parent.Position);
@@ -114,7 +126,9 @@ export const render_component = (() => {
           if (m) {
             // HACK
             m.depthWrite = true;
-            m.transparent = false;
+            m.transparent = true;
+            m.alphaTest = 0.5;
+            m.side = this.params_.sided;
 
             if (this.params_.onMaterial) {
               this.params_.onMaterial(m);

@@ -50,10 +50,11 @@ export const enemy_ai_controller = (() => {
     OnDeath_(){
       if (!this.dead_) {
         this.dead_ = true;
+        let body = this.Parent.components_.BasicRigidBody
+        this._enemyStrafeFSM.SetState('Death') 
+        _APP.ammojs_.RemoveRigidBody(body)
+        // spawn new goblin?
       }
-      let body = this.Parent.components_.BasicRigidBody
-      _APP.ammojs_.RemoveRigidBody(body)
-      this._enemyStrafeFSM.SetState('Death') 
     }
 
     Update(timeElapsed) {
@@ -178,6 +179,11 @@ export const enemy_ai_controller = (() => {
 
     Update(timeInSeconds) {
 
+      if(this._mixer){
+        this._mixer.update(timeInSeconds);
+      }
+      this._enemySlashFSM.Update(timeInSeconds, this.input_);
+      this._enemyStrafeFSM.Update(timeInSeconds, this.input_);
       if (this.dead_) {
         return;
       }
@@ -191,12 +197,6 @@ export const enemy_ai_controller = (() => {
       // this.Parent.Attributes.InputCurrent;
       if (!this.input_) {
         return;
-      }
-      this._enemySlashFSM.Update(timeInSeconds, this.input_);
-      this._enemyStrafeFSM.Update(timeInSeconds, this.input_);
-      
-      if(this._mixer){
-        this._mixer.update(timeInSeconds);
       }
     }
   };

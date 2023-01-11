@@ -1,5 +1,5 @@
 import {THREE, OrbitControls} from './three-defs.js';
-
+// , AfterimagePass, RenderPass, EffectComposer, GlitchPass
 import {entity} from "./entity.js";
 
 
@@ -16,16 +16,19 @@ export const threejs_component = (() => {
     InitEntity() {
       this.threejs_ = new THREE.WebGLRenderer({
         antialias: true,
+        sortObjects: true,
         alpha:true
       });
+      this.threejs_.xr.enabled = true;
       this.threejs_.outputEncoding = THREE.sRGBEncoding;
       // this.threejs_.gammaFactor = 2.2;
       this.threejs_.shadowMap.enabled = true;
       this.threejs_.shadowMap.type = THREE.PCFSoftShadowMap;
+      this.threejs_.shadowMap.autoUpdate = false;
       this.threejs_.setPixelRatio(window.devicePixelRatio);
       this.threejs_.setSize(window.innerWidth, window.innerHeight);
       this.threejs_.domElement.id = 'threejs';
-      this.threejs_.physicallyCorrectLights = true;
+      // this.threejs_.physicallyCorrectLights = true;
   
       document.getElementById('container').appendChild(this.threejs_.domElement);
   
@@ -33,42 +36,43 @@ export const threejs_component = (() => {
         this.OnResize_();
       }, false);
   
-      const fov = 60;
-      const aspect = 1920 / 1080;
-      const near = 0.010;
-      const far = 1000.0;
+      const fov = 80;
+      const aspect = window.innerWidth / window.innerHeight;
+      const near = 0.01;
+      const far = 10.0;
       this.camera_ = new THREE.PerspectiveCamera(fov, aspect, near, far);
-      this.camera_.position.set(.2, .05, .15);
+      // this.camera_.position.set(.2, .05, .15);
       this.scene_ = new THREE.Scene();
 
       this.listener_ = new THREE.AudioListener();
       this.camera_.add(this.listener_);
 
-      this.crawlCamera_ = new THREE.PerspectiveCamera(fov, aspect, near, far);
-      this.crawlScene_ = new THREE.Scene();
-
-      this.uiCamera_ = new THREE.OrthographicCamera(
-          -1, 1, 1 * aspect, -1 * aspect, 1, 1000);
-      this.uiScene_ = new THREE.Scene();
   
-      let light = new THREE.DirectionalLight(0x8088b3, 1.0);
-      light.position.set(-.1, 5, .1);
-      light.target.position.set(0, 0, 0);
-      light.castShadow = true;
-      light.shadow.bias = -0.001;
-      light.shadow.mapSize.width = 512;
-      light.shadow.mapSize.height = 512;
-      light.shadow.camera.near = 0.010;
-      light.shadow.camera.far = 10.0;
-      light.shadow.camera.left = 5;
-      light.shadow.camera.right = -5;
-      light.shadow.camera.top = 5;
-      light.shadow.camera.bottom = -5;
-      this.scene_.add(light);
+	    let lightProbe = new THREE.LightProbe();
+	    lightProbe.intensity = 0;
+	    lightProbe.castShadow = true;
+      this.scene_.add(lightProbe);
+      globalThis.lightProbe = lightProbe;
 
-      this.sun_ = light;
+      let directionalLight = new THREE.DirectionalLight(0x8088b3, 1.0);
+      directionalLight.position.set(0, 1, 1);
+      directionalLight.target.position.set(0, -1.2, 0);
+      directionalLight.castShadow = true;
+      directionalLight.shadow.bias = -0.0001;
+      directionalLight.shadow.mapSize.width = 4096;
+      directionalLight.shadow.mapSize.height = 4096;
+      directionalLight.shadow.camera.near = 0.01;
+      directionalLight.shadow.camera.far = 5.0;
+      directionalLight.shadow.camera.left = 3;
+      directionalLight.shadow.camera.right = -3;
+      directionalLight.shadow.camera.top = 3;
+      directionalLight.shadow.camera.bottom = -3;
+      this.scene_.add(directionalLight);
+      globalThis.directionalLight = directionalLight
 
-      light = new THREE.AmbientLight(0xFFFFFF, 0.035);
+      this.sun_ = directionalLight;
+
+      let light = new THREE.AmbientLight(0xFFFFFF, 2.0);
       this.scene_.add(light);
 
       this.OnResize_();
@@ -78,12 +82,6 @@ export const threejs_component = (() => {
     OnResize_() {
       this.camera_.aspect = window.innerWidth / window.innerHeight;
       this.camera_.updateProjectionMatrix();
-      this.crawlCamera_.aspect = window.innerWidth / window.innerHeight;
-      this.crawlCamera_.updateProjectionMatrix();
-
-      this.uiCamera_.left = -this.camera_.aspect;
-      this.uiCamera_.right = this.camera_.aspect;
-      this.uiCamera_.updateProjectionMatrix();
 
       this.threejs_.setSize(window.innerWidth, window.innerHeight);
     }
@@ -91,8 +89,7 @@ export const threejs_component = (() => {
     Render() {
       this.threejs_.autoClearColor = true;
       this.threejs_.render(this.scene_, this.camera_);
-      this.threejs_.autoClearColor = false;
-      this.threejs_.render(this.uiScene_, this.uiCamera_);
+      // this.composer_.render();
     }
 
     Update(timeElapsed) {
@@ -102,11 +99,11 @@ export const threejs_component = (() => {
       }
       const pos = player._position;
   
-      this.sun_.position.copy(pos);
-      this.sun_.position.add(new THREE.Vector3(-.1, 5, .1));
-      this.sun_.target.position.copy(pos);
-      this.sun_.updateMatrixWorld();
-      this.sun_.target.updateMatrixWorld();
+      // this.sun_.position.copy(pos);
+      // this.sun_.position.add(new THREE.Vector3(-.1, 5, .1));
+      // this.sun_.target.position.copy(pos);
+      // this.sun_.updateMatrixWorld();
+      // this.sun_.target.updateMatrixWorld();
 
     }
   }

@@ -5,7 +5,7 @@ import {entity} from "./entity.js";
 
 export const arrow_effect = (() => {
 
-  class ArrowEffect extends particle_system.ParticleEmitter {
+  class ArrowTrail extends particle_system.DirectionalEmitter {
     constructor(offset, parent) {
       super();
       this.parent_ = parent;
@@ -31,19 +31,62 @@ export const arrow_effect = (() => {
 
       return {
           position: p,
-          size: (Math.random() * 0.5 + 0.5) * 0.5,
+          size: 0.1,
           colour: new THREE.Color(),
           alpha: 1.0,
           life: life,
           maxLife: life,
-          rotation: Math.random() * 2.0 * Math.PI,
+          rotation: 0,
           velocity: d,
           blend: this.blend_,
           drag: 1.0,
       };
     }
   };
-  class ArrowTrail extends entity.Component {
+
+  class ArrowImpact extends particle_system.ParticleEmitter {
+    constructor(offset, parent) {
+      super();
+      this.parent_ = parent;
+      this.offset_ = offset;
+      this.blend_ = 1.0;
+    }
+
+    OnUpdate_() {
+    }
+
+    AddParticles(num) {
+
+
+      for (let i = 0; i < num; ++i) {
+        this.particles_.push(this.CreateParticle_());
+      }
+    }
+
+    CreateParticle_() {
+      const life = (Math.random() * 0.85 + 0.15) * 6.0;
+      const p = this.offset_.clone().applyQuaternion(this.parent_.Quaternion).add(this.parent_.Position);
+      // spherically random
+      const phi = 2*Math.PI * Math.random()
+      const theta = Math.PI * Math.random()
+      // since is random (x,y,z) order doesn't really matter
+      const d = new THREE.Vector3(Math.cos(theta), Math.sin(theta)*Math.cos(phi), Math.sin(theta)*Math.sin(phi));
+
+      return {
+          position: p,
+          size: Math.random()*0.2+0.2,
+          colour: new THREE.Color(),
+          alpha: 1.0,
+          life: life,
+          maxLife: life,
+          rotation: 2*Math.PI*Math.random(),
+          velocity: d.multiplyScalar(0.1*Math.random()),
+          blend: this.blend_,
+          drag: 1.0,
+      };
+    }
+  };
+  class ArrowTrailComponent extends entity.Component {
     constructor(params) {
       super();
       this.params_ = params;
@@ -58,13 +101,14 @@ export const arrow_effect = (() => {
     }
 
     InitEntity() {
-      this.particles_ = new particle_system.ParticleSystem({
+      this.particles_ = new particle_system.DirecitonalSystem({
           camera: this.params_.camera,
           parent: this.params_.scene,
-          texture: '/static/eave/experiment/aiar/textures/fx/moon.png',
+          texture: '/static/eave/experiment/aiar/textures/fx/'+this.params_.type+'Trail.png',
       });
       this.ArrowFired_();
     }
+    // alter trail?
 
     ArrowFired_() {
       const emitter = new ArrowEffect(new THREE.Vector3(0, 0, .05), this.Parent);
@@ -113,7 +157,7 @@ export const arrow_effect = (() => {
   }
   
   // only for effect arrows (exploding/fire/ice)
-  class ArrowImpact extends entity.Component {
+  class ArrowImpactComponent extends entity.Component {
     constructor(params) {
       super();
       this.params_ = params;
@@ -131,7 +175,7 @@ export const arrow_effect = (() => {
       this.particles_ = new particle_system.ParticleSystem({
           camera: this.params_.camera,
           parent: this.params_.scene,
-          texture: '/static/eave/experiment/aiar/textures/fx/arrowCollision.png',
+          texture: '/static/eave/experiment/aiar/textures/fx/'+this.params_.type+'Explosion.png',
       });
       this.OnDamaged_();
     }
@@ -173,6 +217,55 @@ export const arrow_effect = (() => {
     }
   }
 
+
+  class ArrowImpactSpawner extends entity.Component {
+    constructor(params) {
+      super();
+      this.params_ = params;
+    }
+
+    Spawn(target) {
+      const params = {
+        camera: this.params_.camera,
+        scene: this.params_.scene,
+        target: target,
+        type: 'flame'
+      };
+
+      const e = new entity.Entity();
+      e.SetPosition(target.Position);
+      e.AddComponent(new ArrowImpactComponent(params));
+
+      this.Manager.Add(e);
+
+      return e;
+    }
+  }
+
+  class ArrowTrailerSpawner extends entity.Component {
+    constructor(params) {
+      super();
+      this.params_ = params;
+    }
+
+    Spawn(target) {
+      const params = {
+        camera: this.params_.camera,
+        scene: this.params_.scene,
+        target: target,
+        type: 'flame'
+      };
+
+      const e = new entity.Entity();
+      e.SetPosition(target.Position);
+      e.AddComponent(new ArrowTrailComponent(params));
+
+      this.Manager.Add(e);
+
+      return e;
+    }
+  }
+
   class ArrowController extends entity.Component {
     constructor(params) {
       super();
@@ -181,6 +274,8 @@ export const arrow_effect = (() => {
       this.emitter_ = null;
       this.particleSystem_ = new THREE.Group()
       this.arrows_ = {}
+      this.trails_ = []
+      this.explosions_ = []
     }
 
 
@@ -218,19 +313,12 @@ export const arrow_effect = (() => {
 
       arrow.scale.copy( new THREE.Vector3(0.001,0.001,0.001))
       arrow.position.copy( pos )
-      // arrow.position.z-= 0.05
       arrow.quaternion.copy( quat)
       // useful to have off for debugging
-      // let depthMesh =  new THREE.MeshDepthMaterial( {
-      //   depthPacking: THREE.RGBADepthPacking,
-      //   map: arrow.children[0].children[0].material.map,
-      //   alphaTest: 0.5
-      // } );
-      // arrow.children[0].children[0].customDepthMaterial = depthMesh
-      // arrow.children[0].children[1].customDepthMaterial = depthMesh
 
       this.particleSystem_.add( arrow );
 
+      this.arrows_.push((new ArrowTrailerSpawner()).spawn({Position:pos}))
     }
 
     Update(timeElapsed) {
@@ -238,7 +326,6 @@ export const arrow_effect = (() => {
   }
 
   return {
-    ArrowTrail: ArrowTrail,
     ArrowController: ArrowController
   };
 })();
