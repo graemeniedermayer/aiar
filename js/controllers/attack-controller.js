@@ -1,8 +1,7 @@
-import {THREE} from './three-defs.js';
+import {THREE} from '../core/three-defs.js';
+import {entity} from '../core/entity.js';
 
-import {particle_system} from "./particle-system.js";
-import {entity} from './entity.js';
-
+import {particle_system} from "../animations/particle-system.js";
 
 export const bow_controller = (() => {
 

@@ -1,10 +1,9 @@
-import {THREE} from './three-defs.js';
+import {THREE} from '../core/three-defs.js';
+import {entity} from '../core/entity.js';
+import {math} from '../core/math.js';
+import {globals} from '../core/globals.js';
 
-import {entity} from './entity.js';
-import {math} from './math.js';
-
-import {fsm} from './fsm.js';
-import {globals} from './globals.js';
+import {fsm} from '../animations/fsm.js';
 
 export const player_controller = (() => {
 

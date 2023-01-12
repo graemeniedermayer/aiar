@@ -1,7 +1,5 @@
-import {THREE} from './three-defs.js';
-
-import {entity} from './entity.js';
-
+import {THREE} from '../core/three-defs.js';
+import {entity} from '../core/entity.js';
 
 export const health_controller = (() => {
 

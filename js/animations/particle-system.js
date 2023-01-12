@@ -1,5 +1,4 @@
-import {THREE} from './three-defs.js';
-
+import {THREE} from '../core/three-defs.js';
 
 export const particle_system = (() => {
 

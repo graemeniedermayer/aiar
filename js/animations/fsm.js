@@ -1,6 +1,5 @@
-
-import {finite_state_machine} from './finite-state-machine.js'
-import {player_state} from './state.js'
+import {finite_state_machine} from '../core/finite-state-machine.js'
+import {player_state} from './player-state.js'
 import {enemy_state} from './enemy-state.js'//split out?
   
 export const fsm = (() => {

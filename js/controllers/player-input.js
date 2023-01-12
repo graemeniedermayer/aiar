@@ -1,5 +1,5 @@
-import {entity} from "./entity.js";
-import {THREE} from './three-defs.js';
+import {entity} from "../core/entity.js";
+import {THREE} from '../core/three-defs.js';
 
 
 export const player_input = (() => {

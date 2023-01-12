@@ -1,20 +1,16 @@
-import {entity_manager} from './entity-manager.js';
-import {entity} from './entity.js';
+import {entity_manager} from './core/entity-manager.js';
+import {spatial_hash_grid} from './core/spatial-hash-grid.js';
+import {threejs_component} from './core/threejs-component.js';
+import {math} from './core/math.js';
+import {THREE} from './core/three-defs.js';
+import {entity} from './core/entity.js';
+import {load_controller} from './core/load-controller.js';
+import {xr_component} from './core/webxr-component.js';
 
-import {load_controller} from './load-controller.js';
+import {ammojs_component} from './physics/ammojs-component.js';
+import {basic_rigid_body} from './physics/rigid-body.js';
+
 import {spawners} from './spawners.js';
-
-import {spatial_hash_grid} from './spatial-hash-grid.js';
-import {threejs_component} from './threejs-component.js';
-import {ammojs_component} from './ammojs-component.js';
-import {xr_component} from './webxr-component.js';
-
-import {basic_rigid_body} from './rigid-body.js';
-
-import {math} from './math.js';
-
-import {THREE} from './three-defs.js';
-
 
 class aielf {
   constructor() {

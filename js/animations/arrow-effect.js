@@ -1,7 +1,7 @@
-import {THREE, SkeletonUtils} from './three-defs.js';
+import {THREE, SkeletonUtils} from '../core/three-defs.js';
+import {entity} from "../core/entity.js";
 
 import {particle_system} from "./particle-system.js";
-import {entity} from "./entity.js";
 
 export const arrow_effect = (() => {
 
@@ -318,7 +318,7 @@ export const arrow_effect = (() => {
 
       this.particleSystem_.add( arrow );
 
-      this.arrows_.push((new ArrowTrailerSpawner()).spawn({Position:pos}))
+      // this.arrows_.push((new ArrowTrailerSpawner()).spawn({Position:pos}))
     }
 
     Update(timeElapsed) {

@@ -1,16 +1,16 @@
-import {THREE} from './three-defs.js';
+import {THREE} from './core/three-defs.js';
+import {entity} from './core/entity.js';
+import {globals} from './core/globals.js';
+import {render_component} from './core/render-component.js';
 
-import {entity} from './entity.js';
+import {player_controller} from './controllers/player-controller.js';
+import {player_input} from './controllers/player-input.js';
+import {health_controller} from './controllers/health-controller.js';
+import {enemy_ai_controller} from './controllers/enemy-ai-controller.js';
+import {spatial_grid_controller} from './controllers/spatial-grid-controller.js';
 
-import {player_controller} from './player-controller.js';
-import {player_input} from './player-input.js';
-import {render_component} from './render-component.js';
-import {spatial_grid_controller} from './spatial-grid-controller.js';
-import {health_controller} from './health-controller.js';
-import {arrow_effect} from './arrow-effect.js';
-import {basic_rigid_body} from './rigid-body.js';
-import {globals} from './globals.js';
-import {enemy_ai_controller} from './enemy-ai-controller.js';
+import {arrow_effect} from './animations/arrow-effect.js';
+import {basic_rigid_body} from './physics/rigid-body.js';
 
 
 export const spawners = (() => {
@@ -38,7 +38,7 @@ export const spawners = (() => {
       );
       player.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
-        resourcePath: `../aiar/models/character/`,
+        resourcePath: `../../models/character/`,
         resourceName: `${params.characterModel}.glb`,
         scale: scale,
         castShadow:true,
@@ -157,7 +157,7 @@ export const spawners = (() => {
       const flora = new entity.Entity();
       flora.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
-        resourcePath: `../aiar/models/environment/`,
+        resourcePath: `../../models/environment/`,
         resourceName: `environment.glb`,
         scale: scale,
         castShadow:true,
@@ -253,7 +253,7 @@ export const spawners = (() => {
       weapon.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
         nonScene: true,
-        resourcePath: `../aiar/models/equipment/`,
+        resourcePath: `../../models/equipment/`,
         resourceName: `weapons.glb`,
         scale: scale,
         castShadow:true,
@@ -311,7 +311,7 @@ export const spawners = (() => {
       goblinWeapon.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
         nonScene: true,
-        resourcePath: `../aiar/models/equipment/`,
+        resourcePath: `../../models/equipment/`,
         resourceName: `goblinWeapons.glb`,
         scale: scale,
         castShadow:true,
@@ -370,7 +370,7 @@ export const spawners = (() => {
       arrow.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
         nonScene: true,
-        resourcePath: `../aiar/models/equipment/`,
+        resourcePath: `../../models/equipment/`,
         resourceName: `arrows.glb`,
         scale: scale,
         castShadow:true,
@@ -422,7 +422,7 @@ export const spawners = (() => {
       const building = new entity.Entity();
       building.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
-        resourcePath: `../aiar/models/environment/`,
+        resourcePath: `../../models/environment/`,
         resourceName: `town.glb`,
         scale: scale,
         castShadow:true,
@@ -476,7 +476,7 @@ export const spawners = (() => {
       }));
       enemy.AddComponent(new render_component.RenderComponent({
         scene: params.scene,
-        resourcePath: '../aiar/models/enemy/',
+        resourcePath: '../../models/enemy/',
         resourceName: 'goblin1.glb',
         scale: 0.7*scale,
         castShadow:true,
@@ -552,6 +552,6 @@ export const spawners = (() => {
     GoblinSpawner: GoblinSpawner,
     GoblinWeaponSpawner: GoblinWeaponSpawner,
     ArrowSpawner: ArrowSpawner,
-    ParticleEffectSpawner: ParticleEffectSpawner,
+    // ParticleEffectSpawner: ParticleEffectSpawner,
   };
 })();

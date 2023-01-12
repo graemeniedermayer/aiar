@@ -1,7 +1,7 @@
-import {THREE} from './three-defs.js';
+import {THREE} from '../core/three-defs.js';
 
-import {entity} from './entity.js';
-import {globals} from './globals.js';
+import {entity} from '../core/entity.js';
+import {globals} from '../core/globals.js';
 
 // this should build network controller.
 
