@@ -78,10 +78,10 @@ export const spawners = (() => {
           
           // create a clone
 
-          controller.weapons = weapons.filter(x=> x.name=='AquaBow');
+          controller.weapons = weapons.filter(x=> x.name=='bow');
           let weapon = controller.weapons[0]
           controller.weapon = weapon
-          controller.arrows = arrows.filter(x=> x.name=='moonArrow1');
+          controller.arrows = arrows.filter(x=> x.name=='arrow');
           let arrow = controller.arrows[0]
           controller.arrow = arrow
 
@@ -254,7 +254,7 @@ export const spawners = (() => {
         scene: params.scene,
         nonScene: true,
         resourcePath: `../../models/equipment/`,
-        resourceName: `weapons.glb`,
+        resourceName: `bow.glb`,
         scale: scale,
         castShadow:true,
         receiveShadow:true,
@@ -371,7 +371,7 @@ export const spawners = (() => {
         scene: params.scene,
         nonScene: true,
         resourcePath: `../../models/equipment/`,
-        resourceName: `arrows.glb`,
+        resourceName: `arrow.glb`,
         scale: scale,
         castShadow:true,
         receiveShadow:true,

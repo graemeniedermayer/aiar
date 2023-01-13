@@ -99,8 +99,9 @@ export const enemy_state = (() => {
         }
       
         Update(_) {
+          // this._action.clip.duration*0.95
           if(this._action.time > 2){
-            this._action.pause()
+            this._action.timeScale = 0
           }
         }
       };
