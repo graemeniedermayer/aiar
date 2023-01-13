@@ -81,7 +81,7 @@ export const enemy_state = (() => {
           let deathNum = 1
           this._action = this._parent._parent._animations[`death2`];
           this._action.loop = 2200;
-          globalThis.action = this._action
+          this._action.clampWhenFinished = true
           if (prevState) {
             const prevAction = this._parent._parent._animations[prevState.Name];
             this._action.enabled = true;
@@ -100,9 +100,9 @@ export const enemy_state = (() => {
       
         Update(_) {
           // this._action.clip.duration*0.95
-          if(this._action.time > 2){
-            this._action.timeScale = 0
-          }
+          // if(this._action.time > 2){
+          //   this._action.timeScale = 0
+          // }
         }
       };
     

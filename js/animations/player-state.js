@@ -34,6 +34,7 @@ export const player_state = (() => {
       let deathNum = 0
       this._action = this._parent._parent._animations[`death${deathNum}`];
       this._action.loop = 2200;
+      this._action.clampWhenFinished = true
       if (prevState) {
         const prevAction = this._parent._parent._animations[prevState.Name];
 
@@ -57,6 +58,10 @@ export const player_state = (() => {
     }
   
     Update(_) {
+      // this._action.clip.duration*0.95
+      // if(this._action.time > 2){
+      //   this._action.timeScale = 0
+      // }
     }
   };
 
